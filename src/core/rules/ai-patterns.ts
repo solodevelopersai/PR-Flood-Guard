@@ -1,8 +1,7 @@
 import type { PullRequestContext, TriggeredRule } from "../types.js";
-import {
-  MAX_ANALYZED_COMMENT_CHARS,
-  RULE_IMPACTS,
-} from "../../utils/constants.js";
+import { MAX_ANALYZED_COMMENT_CHARS } from "../../utils/constants.js";
+import { DEFAULT_RULE_WEIGHTS } from "../../config/default.js";
+import type { PRFloodGuardConfig } from "../../config/schema.js";
 
 const AI_STYLE_PATTERNS = [
   /\b(as an ai|as a language model)\b/i,
@@ -12,7 +11,10 @@ const AI_STYLE_PATTERNS = [
   /\b(comprehensive (?:solution|implementation))\b/i,
 ];
 
-export function aiPatternRules(context: PullRequestContext): TriggeredRule[] {
+export function aiPatternRules(
+  context: PullRequestContext,
+  weights: PRFloodGuardConfig["weights"] = DEFAULT_RULE_WEIGHTS,
+): TriggeredRule[] {
   const text = [context.body ?? "", ...(context.codeCommentText ?? [])]
     .join("\n")
     .slice(0, MAX_ANALYZED_COMMENT_CHARS);
@@ -23,7 +25,7 @@ export function aiPatternRules(context: PullRequestContext): TriggeredRule[] {
   return [
     {
       name: "ai-style-language",
-      impact: RULE_IMPACTS.aiPattern,
+      impact: weights.aiPattern,
       message:
         "Some phrasing resembles common AI-generated boilerplate; this is not evidence of AI authorship.",
     },

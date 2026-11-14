@@ -8,6 +8,23 @@ thresholds:
   critical: 25
   high: 40
   medium: 65
+weights:
+  genericTitle: 20
+  shortTitle: 8
+  weakDescription: 12
+  shortDescription: 6
+  noLinkedIssue: 4
+  weakCommit: 12
+  suspiciousDiff: 12
+  manyFiles: 8
+  noTests: 8
+  newAccount: 10
+  lowReputation: 8
+  aiPattern: 8
+  genericBranch: 6
+  missingDocs: 5
+scoring:
+  titleCommitPenaltyCap: 25
 actions:
   critical: "label+comment"
   high: "label+comment"
@@ -32,6 +49,10 @@ features:
 ## Thresholds
 
 Scores range from 0 (most risk signals) to 100 (fewest). The matching risk is the first threshold that contains the score: `score <= critical` is critical, else `score <= high` is high, else `score <= medium` is medium, otherwise low. Thresholds must be integers from 0 to 100 and strictly increase.
+
+## Rule weights and scoring
+
+`weights` sets each rule's score impact; omitted values use the defaults shown above. The combined penalty for a generic title and generic commit messages is capped at 25 by default through `scoring.titleCommitPenaltyCap`.
 
 ## Actions
 

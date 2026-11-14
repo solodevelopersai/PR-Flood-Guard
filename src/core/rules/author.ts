@@ -1,10 +1,12 @@
 import type { PullRequestContext, TriggeredRule } from "../types.js";
 import { hasLowPublicReputation, isNewAccount } from "../reputation.js";
-import { RULE_IMPACTS } from "../../utils/constants.js";
+import { DEFAULT_RULE_WEIGHTS } from "../../config/default.js";
+import type { PRFloodGuardConfig } from "../../config/schema.js";
 
 export function authorRules(
   context: PullRequestContext,
   now = new Date(),
+  weights: PRFloodGuardConfig["weights"] = DEFAULT_RULE_WEIGHTS,
 ): TriggeredRule[] {
   const rules: TriggeredRule[] = [];
   const createdAt = context.author.createdAt
@@ -17,7 +19,7 @@ export function authorRules(
   if (isNewAccount(accountAgeDays)) {
     rules.push({
       name: "new-account",
-      impact: RULE_IMPACTS.newAccount,
+      impact: weights.newAccount,
       message:
         "The author account is less than 30 days old; verify context without assuming intent.",
     });
@@ -33,7 +35,7 @@ export function authorRules(
   if (hasLowPublicReputation(reputationSignals)) {
     rules.push({
       name: "low-public-merge-rate",
-      impact: RULE_IMPACTS.lowReputation,
+      impact: weights.lowReputation,
       message:
         "Fewer than 20% of the author's sampled PRs in this repository were merged; this limited signal may be incomplete.",
     });

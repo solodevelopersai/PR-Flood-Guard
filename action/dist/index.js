@@ -34811,9 +34811,30 @@ var core = __toESM(require_core());
 var github = __toESM(require_github());
 
 // src/config/default.ts
+var DEFAULT_RULE_WEIGHTS = {
+  genericTitle: 20,
+  shortTitle: 8,
+  weakDescription: 12,
+  shortDescription: 6,
+  noLinkedIssue: 4,
+  weakCommit: 12,
+  suspiciousDiff: 12,
+  manyFiles: 8,
+  noTests: 8,
+  newAccount: 10,
+  lowReputation: 8,
+  aiPattern: 8,
+  genericBranch: 6,
+  missingDocs: 5
+};
+var DEFAULT_SCORING = {
+  titleCommitPenaltyCap: 25
+};
 var defaultConfig = {
   version: 1,
   thresholds: { critical: 25, high: 40, medium: 65 },
+  weights: DEFAULT_RULE_WEIGHTS,
+  scoring: DEFAULT_SCORING,
   actions: {
     critical: "label+comment",
     high: "label+comment",
@@ -34832,22 +34853,6 @@ var defaultConfig = {
 };
 
 // src/utils/constants.ts
-var RULE_IMPACTS = {
-  genericTitle: 20,
-  shortTitle: 8,
-  weakDescription: 12,
-  shortDescription: 6,
-  noLinkedIssue: 4,
-  weakCommit: 12,
-  suspiciousDiff: 12,
-  manyFiles: 8,
-  noTests: 8,
-  newAccount: 10,
-  lowReputation: 8,
-  aiPattern: 8,
-  genericBranch: 6,
-  missingDocs: 5
-};
 var MAX_ANALYZED_COMMENT_CHARS = 1e5;
 
 // src/core/rules/ai-patterns.ts
@@ -34858,7 +34863,7 @@ var AI_STYLE_PATTERNS = [
   /\b(in conclusion|in summary)\b/i,
   /\b(comprehensive (?:solution|implementation))\b/i
 ];
-function aiPatternRules(context2) {
+function aiPatternRules(context2, weights = DEFAULT_RULE_WEIGHTS) {
   const text = [context2.body ?? "", ...context2.codeCommentText ?? []].join("\n").slice(0, MAX_ANALYZED_COMMENT_CHARS);
   const matches = AI_STYLE_PATTERNS.filter(
     (pattern) => pattern.test(text)
@@ -34867,7 +34872,7 @@ function aiPatternRules(context2) {
   return [
     {
       name: "ai-style-language",
-      impact: RULE_IMPACTS.aiPattern,
+      impact: weights.aiPattern,
       message: "Some phrasing resembles common AI-generated boilerplate; this is not evidence of AI authorship."
     }
   ];
@@ -34884,14 +34889,14 @@ function hasLowPublicReputation(signals) {
 }
 
 // src/core/rules/author.ts
-function authorRules(context2, now = /* @__PURE__ */ new Date()) {
+function authorRules(context2, now = /* @__PURE__ */ new Date(), weights = DEFAULT_RULE_WEIGHTS) {
   const rules = [];
   const createdAt = context2.author.createdAt ? new Date(context2.author.createdAt) : void 0;
   const accountAgeDays = createdAt && !Number.isNaN(createdAt.getTime()) ? Math.floor((now.getTime() - createdAt.getTime()) / 864e5) : void 0;
   if (isNewAccount(accountAgeDays)) {
     rules.push({
       name: "new-account",
-      impact: RULE_IMPACTS.newAccount,
+      impact: weights.newAccount,
       message: "The author account is less than 30 days old; verify context without assuming intent."
     });
   }
@@ -34902,7 +34907,7 @@ function authorRules(context2, now = /* @__PURE__ */ new Date()) {
   if (hasLowPublicReputation(reputationSignals)) {
     rules.push({
       name: "low-public-merge-rate",
-      impact: RULE_IMPACTS.lowReputation,
+      impact: weights.lowReputation,
       message: "Fewer than 20% of the author's sampled PRs in this repository were merged; this limited signal may be incomplete."
     });
   }
@@ -34911,7 +34916,7 @@ function authorRules(context2, now = /* @__PURE__ */ new Date()) {
 
 // src/core/rules/commits.ts
 var GENERIC_COMMIT = /^(update|changes?|fix|misc|wip|initial commit|commit|work in progress)(\s+.*)?$/i;
-function commitRules(messages) {
+function commitRules(messages, weights = DEFAULT_RULE_WEIGHTS) {
   if (messages.length === 0) return [];
   const genericCount = messages.filter(
     (message) => GENERIC_COMMIT.test(message.trim())
@@ -34921,7 +34926,7 @@ function commitRules(messages) {
   return [
     {
       name: "weak-commit-messages",
-      impact: RULE_IMPACTS.weakCommit,
+      impact: weights.weakCommit,
       message: `${genericCount} of ${messages.length} commit message(s) are generic or uninformative.`
     }
   ];
@@ -34929,48 +34934,61 @@ function commitRules(messages) {
 
 // src/core/rules/description.ts
 var ISSUE_REFERENCE = /(?:#\d+|(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s+#\d+|https?:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+)/i;
-function descriptionRules(body, linkedIssue) {
+function descriptionRules(body, linkedIssue, weights = DEFAULT_RULE_WEIGHTS) {
   const rules = [];
-  const text = body?.trim() ?? "";
-  const meaningfulText = text.replace(/<!--[\s\S]*?-->/g, "").trim();
-  if (meaningfulText.length < 20) {
+  const meaningfulText = getMeaningfulDescription(body);
+  if (isWeakDescription(body)) {
     rules.push({
       name: "weak-description",
-      impact: RULE_IMPACTS.weakDescription,
+      impact: weights.weakDescription,
       message: "The description is empty or provides very little context."
     });
   } else if (meaningfulText.length < 60) {
     rules.push({
       name: "short-description",
-      impact: RULE_IMPACTS.shortDescription,
+      impact: weights.shortDescription,
       message: "The description is brief; explaining motivation and verification helps review."
     });
   }
   if (linkedIssue === false && !ISSUE_REFERENCE.test(meaningfulText)) {
     rules.push({
       name: "no-linked-issue",
-      impact: RULE_IMPACTS.noLinkedIssue,
+      impact: weights.noLinkedIssue,
       message: "No linked issue or issue reference was found."
     });
   }
   return rules;
 }
+function isWeakDescription(body) {
+  return getMeaningfulDescription(body).length < 20;
+}
+function getMeaningfulDescription(body) {
+  return (body?.trim() ?? "").replace(/<!--[\s\S]*?-->/g, "").trim();
+}
 
 // src/core/rules/diff.ts
-function diffRules(context2) {
+var TYPO_FIX_PATTERN = /\b(?:fix|correct|repair|resolve)\b.{0,30}\b(?:typo|spelling|misspell\w*|grammar)\b|\b(?:typo|spelling|misspell\w*|grammar)\b.{0,30}\b(?:fix|correct|repair|resolve)\b/i;
+function diffRules(context2, weights = DEFAULT_RULE_WEIGHTS) {
   const rules = [];
   const changedLines = context2.additions + context2.deletions;
-  if (changedLines <= 1 || changedLines > 5e3) {
+  const isTinyDiff = changedLines <= 5;
+  const isDocsOnly = context2.files.length > 0 && context2.files.every(
+    (file2) => /(?:^|[/\\])docs?[/\\]/i.test(file2.filename) || /\.(?:md|txt)$/i.test(file2.filename)
+  );
+  const looksLikeTypoFix = TYPO_FIX_PATTERN.test(
+    [context2.title, context2.body ?? "", ...context2.commits].join("\n")
+  );
+  if (isTinyDiff && !isDocsOnly && !looksLikeTypoFix && isWeakDescription(context2.body) || changedLines > 5e3) {
     rules.push({
       name: "suspicious-diff-size",
-      impact: RULE_IMPACTS.suspiciousDiff,
-      message: changedLines <= 1 ? "The PR changes at most one line; confirm the change is complete and intentional." : `The PR changes ${changedLines.toLocaleString()} lines, which is unusually large and difficult to review.`
+      impact: weights.suspiciousDiff,
+      message: isTinyDiff ? "The PR changes very few lines and has a weak description; confirm the change is complete and intentional." : `The PR changes ${changedLines.toLocaleString()} lines, which is unusually large and difficult to review.`
     });
   }
   if (context2.files.length > 50) {
     rules.push({
       name: "many-files-changed",
-      impact: RULE_IMPACTS.manyFiles,
+      impact: weights.manyFiles,
       message: `${context2.files.length} files changed; consider splitting unrelated changes.`
     });
   }
@@ -34987,7 +35005,7 @@ function diffRules(context2) {
   if (hasProductionCode && !hasTests) {
     rules.push({
       name: "no-tests-changed",
-      impact: RULE_IMPACTS.noTests,
+      impact: weights.noTests,
       message: "Production code changed without a test file; consider adding or updating tests."
     });
   }
@@ -35002,7 +35020,7 @@ function diffRules(context2) {
   if (changesCode && !changesDocs) {
     rules.push({
       name: "no-docs-changed",
-      impact: RULE_IMPACTS.missingDocs,
+      impact: weights.missingDocs,
       message: "Code changed without a documentation update; check whether user-facing docs need revision."
     });
   }
@@ -35011,19 +35029,19 @@ function diffRules(context2) {
 
 // src/core/rules/title.ts
 var GENERIC_TITLES = /^(update|changes?|fix|bug fix|improve|misc|cleanup|patch|wip)(\s+(files?|code|stuff|things?))?[\s.!:]*$/i;
-function titleRules(title) {
+function titleRules(title, weights = DEFAULT_RULE_WEIGHTS) {
   const rules = [];
   const normalized = title.trim();
   if (GENERIC_TITLES.test(normalized)) {
     rules.push({
       name: "generic-title",
-      impact: RULE_IMPACTS.genericTitle,
+      impact: weights.genericTitle,
       message: `The title "${normalized}" does not explain the change.`
     });
   } else if (normalized.length < 10) {
     rules.push({
       name: "short-title",
-      impact: RULE_IMPACTS.shortTitle,
+      impact: weights.shortTitle,
       message: "The title is very short; add enough context to identify the change."
     });
   }
@@ -35031,25 +35049,25 @@ function titleRules(title) {
 }
 
 // src/core/rules/index.ts
-function evaluateRules(context2, now = /* @__PURE__ */ new Date()) {
+function evaluateRules(context2, now = /* @__PURE__ */ new Date(), weights = DEFAULT_RULE_WEIGHTS) {
   return [
-    ...titleRules(context2.title),
-    ...descriptionRules(context2.body, context2.linkedIssue),
-    ...commitRules(context2.commits),
-    ...diffRules(context2),
-    ...authorRules(context2, now),
-    ...aiPatternRules(context2),
-    ...branchRules(context2.branchName)
+    ...titleRules(context2.title, weights),
+    ...descriptionRules(context2.body, context2.linkedIssue, weights),
+    ...commitRules(context2.commits, weights),
+    ...diffRules(context2, weights),
+    ...authorRules(context2, now, weights),
+    ...aiPatternRules(context2, weights),
+    ...branchRules(context2.branchName, weights)
   ];
 }
-function branchRules(branchName) {
+function branchRules(branchName, weights) {
   if (/^(?:update|changes?|fix|patch|wip|tmp|temp)(?:[-/_].*)?$/i.test(
     branchName.trim()
   )) {
     return [
       {
         name: "generic-branch-name",
-        impact: RULE_IMPACTS.genericBranch,
+        impact: weights.genericBranch,
         message: "The branch name is generic and does not describe the change."
       }
     ];
@@ -35064,7 +35082,10 @@ function clamp(value, minimum, maximum) {
 
 // src/core/scorer.ts
 function scorePullRequest(context2, config2 = defaultConfig, now = /* @__PURE__ */ new Date()) {
-  const triggeredRules = evaluateRules(context2, now);
+  const triggeredRules = capTitleCommitPenalty(
+    evaluateRules(context2, now, config2.weights),
+    config2.scoring.titleCommitPenaltyCap
+  );
   const score = clamp(
     100 - triggeredRules.reduce((total, rule) => total + rule.impact, 0),
     0,
@@ -35074,6 +35095,20 @@ function scorePullRequest(context2, config2 = defaultConfig, now = /* @__PURE__ 
   const suggestedAction = getSuggestedAction(risk, config2);
   const summary = triggeredRules.length === 0 ? "No configured quality-risk signals were detected." : `${triggeredRules.length} quality-risk signal${triggeredRules.length === 1 ? "" : "s"} detected. The score is a review aid, not a judgment about the contributor.`;
   return { score, risk, triggeredRules, suggestedAction, summary };
+}
+function capTitleCommitPenalty(rules, cap) {
+  const titleRule = rules.find((rule) => rule.name === "generic-title");
+  const commitRule = rules.find((rule) => rule.name === "weak-commit-messages");
+  if (!titleRule || !commitRule || titleRule.impact + commitRule.impact <= cap) {
+    return rules;
+  }
+  const titleImpact = Math.min(titleRule.impact, cap);
+  const commitImpact = Math.min(commitRule.impact, cap - titleImpact);
+  return rules.map((rule) => {
+    if (rule === titleRule) return { ...rule, impact: titleImpact };
+    if (rule === commitRule) return { ...rule, impact: commitImpact };
+    return rule;
+  });
 }
 function getRiskLevel(score, config2) {
   if (score <= config2.thresholds.critical) return "critical";
@@ -54823,12 +54858,32 @@ var labelsSchema = external_exports.object({
   medium: external_exports.string().min(1).default("prflood:medium-risk"),
   low: external_exports.string().min(1).default("prflood:low-risk")
 });
+var ruleWeight = (defaultValue) => external_exports.number().int().min(0).max(100).default(defaultValue);
 var configSchema = external_exports.object({
   version: external_exports.literal(1).default(1),
   thresholds: external_exports.object({
     critical: external_exports.number().int().min(0).max(100).default(25),
     high: external_exports.number().int().min(0).max(100).default(40),
     medium: external_exports.number().int().min(0).max(100).default(65)
+  }).prefault({}),
+  weights: external_exports.object({
+    genericTitle: ruleWeight(DEFAULT_RULE_WEIGHTS.genericTitle),
+    shortTitle: ruleWeight(DEFAULT_RULE_WEIGHTS.shortTitle),
+    weakDescription: ruleWeight(DEFAULT_RULE_WEIGHTS.weakDescription),
+    shortDescription: ruleWeight(DEFAULT_RULE_WEIGHTS.shortDescription),
+    noLinkedIssue: ruleWeight(DEFAULT_RULE_WEIGHTS.noLinkedIssue),
+    weakCommit: ruleWeight(DEFAULT_RULE_WEIGHTS.weakCommit),
+    suspiciousDiff: ruleWeight(DEFAULT_RULE_WEIGHTS.suspiciousDiff),
+    manyFiles: ruleWeight(DEFAULT_RULE_WEIGHTS.manyFiles),
+    noTests: ruleWeight(DEFAULT_RULE_WEIGHTS.noTests),
+    newAccount: ruleWeight(DEFAULT_RULE_WEIGHTS.newAccount),
+    lowReputation: ruleWeight(DEFAULT_RULE_WEIGHTS.lowReputation),
+    aiPattern: ruleWeight(DEFAULT_RULE_WEIGHTS.aiPattern),
+    genericBranch: ruleWeight(DEFAULT_RULE_WEIGHTS.genericBranch),
+    missingDocs: ruleWeight(DEFAULT_RULE_WEIGHTS.missingDocs)
+  }).prefault({}),
+  scoring: external_exports.object({
+    titleCommitPenaltyCap: external_exports.number().int().min(0).max(100).default(DEFAULT_SCORING.titleCommitPenaltyCap)
   }).prefault({}),
   actions: external_exports.object({
     critical: riskAction.default("label+comment"),

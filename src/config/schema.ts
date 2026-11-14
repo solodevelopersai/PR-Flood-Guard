@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_RULE_WEIGHTS, DEFAULT_SCORING } from "./default.js";
 
 const riskAction = z.enum([
   "none",
@@ -15,6 +16,9 @@ const labelsSchema = z.object({
   low: z.string().min(1).default("prflood:low-risk"),
 });
 
+const ruleWeight = (defaultValue: number) =>
+  z.number().int().min(0).max(100).default(defaultValue);
+
 export const configSchema = z
   .object({
     version: z.literal(1).default(1),
@@ -23,6 +27,34 @@ export const configSchema = z
         critical: z.number().int().min(0).max(100).default(25),
         high: z.number().int().min(0).max(100).default(40),
         medium: z.number().int().min(0).max(100).default(65),
+      })
+      .prefault({}),
+    weights: z
+      .object({
+        genericTitle: ruleWeight(DEFAULT_RULE_WEIGHTS.genericTitle),
+        shortTitle: ruleWeight(DEFAULT_RULE_WEIGHTS.shortTitle),
+        weakDescription: ruleWeight(DEFAULT_RULE_WEIGHTS.weakDescription),
+        shortDescription: ruleWeight(DEFAULT_RULE_WEIGHTS.shortDescription),
+        noLinkedIssue: ruleWeight(DEFAULT_RULE_WEIGHTS.noLinkedIssue),
+        weakCommit: ruleWeight(DEFAULT_RULE_WEIGHTS.weakCommit),
+        suspiciousDiff: ruleWeight(DEFAULT_RULE_WEIGHTS.suspiciousDiff),
+        manyFiles: ruleWeight(DEFAULT_RULE_WEIGHTS.manyFiles),
+        noTests: ruleWeight(DEFAULT_RULE_WEIGHTS.noTests),
+        newAccount: ruleWeight(DEFAULT_RULE_WEIGHTS.newAccount),
+        lowReputation: ruleWeight(DEFAULT_RULE_WEIGHTS.lowReputation),
+        aiPattern: ruleWeight(DEFAULT_RULE_WEIGHTS.aiPattern),
+        genericBranch: ruleWeight(DEFAULT_RULE_WEIGHTS.genericBranch),
+        missingDocs: ruleWeight(DEFAULT_RULE_WEIGHTS.missingDocs),
+      })
+      .prefault({}),
+    scoring: z
+      .object({
+        titleCommitPenaltyCap: z
+          .number()
+          .int()
+          .min(0)
+          .max(100)
+          .default(DEFAULT_SCORING.titleCommitPenaltyCap),
       })
       .prefault({}),
     actions: z

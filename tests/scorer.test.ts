@@ -41,6 +41,64 @@ describe("scorePullRequest", () => {
     expect(result.summary).toContain("No configured");
   });
 
+  it("keeps a one-line documentation typo fix low risk", () => {
+    const result = scorePullRequest(
+      context({
+        title: "Fix typo in README",
+        body: "Corrects a typo in the README.",
+        files: [{ filename: "README.md", additions: 1, deletions: 0 }],
+        additions: 1,
+        deletions: 0,
+      }),
+      defaultConfig,
+      now,
+    );
+    expect(result.risk).toBe("low");
+    expect(result.triggeredRules.map((rule) => rule.name)).not.toContain(
+      "suspicious-diff-size",
+    );
+  });
+
+  it("caps the combined generic title and commit penalty", () => {
+    const result = scorePullRequest(
+      context({
+        title: "Update",
+        commits: ["Update"],
+      }),
+      defaultConfig,
+      now,
+    );
+    const combinedPenalty = result.triggeredRules
+      .filter((rule) =>
+        ["generic-title", "weak-commit-messages"].includes(rule.name),
+      )
+      .reduce((total, rule) => total + rule.impact, 0);
+    expect(combinedPenalty).toBeLessThanOrEqual(25);
+    expect(result.score).toBeGreaterThanOrEqual(75);
+  });
+
+  it("keeps a generic, empty-description one-line code change high risk", () => {
+    const result = scorePullRequest(
+      context({
+        title: "Update",
+        body: "",
+        commits: ["Update"],
+        files: [{ filename: "src/app.ts", additions: 1, deletions: 0 }],
+        author: { login: "new-user", createdAt: "2025-12-20T00:00:00Z" },
+        branchName: "wip",
+        additions: 1,
+        deletions: 0,
+        linkedIssue: false,
+      }),
+      defaultConfig,
+      now,
+    );
+    expect(["high", "critical"]).toContain(result.risk);
+    expect(result.triggeredRules.map((rule) => rule.name)).toContain(
+      "suspicious-diff-size",
+    );
+  });
+
   it("explains multiple independent quality signals", () => {
     const result = scorePullRequest(
       context({

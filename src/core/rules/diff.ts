@@ -1,23 +1,47 @@
 import type { PullRequestContext, TriggeredRule } from "../types.js";
-import { RULE_IMPACTS } from "../../utils/constants.js";
+import { DEFAULT_RULE_WEIGHTS } from "../../config/default.js";
+import type { PRFloodGuardConfig } from "../../config/schema.js";
+import { isWeakDescription } from "./description.js";
 
-export function diffRules(context: PullRequestContext): TriggeredRule[] {
+const TYPO_FIX_PATTERN =
+  /\b(?:fix|correct|repair|resolve)\b.{0,30}\b(?:typo|spelling|misspell\w*|grammar)\b|\b(?:typo|spelling|misspell\w*|grammar)\b.{0,30}\b(?:fix|correct|repair|resolve)\b/i;
+
+export function diffRules(
+  context: PullRequestContext,
+  weights: PRFloodGuardConfig["weights"] = DEFAULT_RULE_WEIGHTS,
+): TriggeredRule[] {
   const rules: TriggeredRule[] = [];
   const changedLines = context.additions + context.deletions;
-  if (changedLines <= 1 || changedLines > 5_000) {
+  const isTinyDiff = changedLines <= 5;
+  const isDocsOnly =
+    context.files.length > 0 &&
+    context.files.every(
+      (file) =>
+        /(?:^|[/\\])docs?[/\\]/i.test(file.filename) ||
+        /\.(?:md|txt)$/i.test(file.filename),
+    );
+  const looksLikeTypoFix = TYPO_FIX_PATTERN.test(
+    [context.title, context.body ?? "", ...context.commits].join("\n"),
+  );
+  if (
+    (isTinyDiff &&
+      !isDocsOnly &&
+      !looksLikeTypoFix &&
+      isWeakDescription(context.body)) ||
+    changedLines > 5_000
+  ) {
     rules.push({
       name: "suspicious-diff-size",
-      impact: RULE_IMPACTS.suspiciousDiff,
-      message:
-        changedLines <= 1
-          ? "The PR changes at most one line; confirm the change is complete and intentional."
-          : `The PR changes ${changedLines.toLocaleString()} lines, which is unusually large and difficult to review.`,
+      impact: weights.suspiciousDiff,
+      message: isTinyDiff
+        ? "The PR changes very few lines and has a weak description; confirm the change is complete and intentional."
+        : `The PR changes ${changedLines.toLocaleString()} lines, which is unusually large and difficult to review.`,
     });
   }
   if (context.files.length > 50) {
     rules.push({
       name: "many-files-changed",
-      impact: RULE_IMPACTS.manyFiles,
+      impact: weights.manyFiles,
       message: `${context.files.length} files changed; consider splitting unrelated changes.`,
     });
   }
@@ -35,7 +59,7 @@ export function diffRules(context: PullRequestContext): TriggeredRule[] {
   if (hasProductionCode && !hasTests) {
     rules.push({
       name: "no-tests-changed",
-      impact: RULE_IMPACTS.noTests,
+      impact: weights.noTests,
       message:
         "Production code changed without a test file; consider adding or updating tests.",
     });
@@ -52,7 +76,7 @@ export function diffRules(context: PullRequestContext): TriggeredRule[] {
   if (changesCode && !changesDocs) {
     rules.push({
       name: "no-docs-changed",
-      impact: RULE_IMPACTS.missingDocs,
+      impact: weights.missingDocs,
       message:
         "Code changed without a documentation update; check whether user-facing docs need revision.",
     });
