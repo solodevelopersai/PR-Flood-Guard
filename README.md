@@ -121,3 +121,4 @@ Bug reports and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.m
 ## License
 
 MIT. See [LICENSE](LICENSE).
+Fixed a typo.
