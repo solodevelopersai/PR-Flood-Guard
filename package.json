@@ -1,0 +1,57 @@
+{
+  "name": "pr-flood-guard",
+  "version": "0.1.0",
+  "description": "Transparent, configurable pull request quality heuristics for GitHub",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/solodevelopersai/pr-flood-guard.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:action": "esbuild action/src/main.ts --bundle --platform=node --target=node20 --format=cjs --outfile=action/dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "eslint \"src/**/*.ts\" \"action/src/**/*.ts\" \"tests/**/*.ts\" vitest.config.ts",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^8.0.0",
+    "@octokit/rest": "^21.1.1",
+    "yaml": "^2.6.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^8.57.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.12"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "minimatch": "^11.0.8"
+  }
+}

@@ -1,0 +1,32 @@
+version: 1
+
+thresholds:
+  critical: 20
+  high: 35
+  medium: 60
+
+actions:
+  critical: quarantine
+  high: "label+comment"
+  medium: label
+  low: none
+
+labels:
+  critical: "triage:needs-human"
+  high: "triage:high-risk"
+  medium: "triage:review"
+  low: "triage:low-risk"
+
+comment:
+  enabled: true
+  style: friendly
+
+whitelist:
+  users:
+    - trusted-maintainer
+  teams:
+    - example-org/maintainers
+
+features:
+  reputation: false
+  llm_analysis: false

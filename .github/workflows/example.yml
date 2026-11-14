@@ -1,0 +1,16 @@
+name: PRFloodGuard example
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: write
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: solodevelopersai/pr-flood-guard/action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}

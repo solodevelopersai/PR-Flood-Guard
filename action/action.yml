@@ -1,0 +1,17 @@
+name: PRFloodGuard
+description: Transparently score pull requests and apply configurable review signals.
+author: Solo Developers AI
+branding:
+  icon: shield
+  color: blue
+inputs:
+  github-token:
+    description: Token used to read PR metadata and create configured labels, comments, and checks.
+    required: true
+  config-path:
+    description: Repository-relative path to the YAML configuration.
+    required: false
+    default: .github/prfloodguard.yml
+runs:
+  using: node20
+  main: dist/index.js

@@ -1,0 +1,7 @@
+{
+  "name": "pr-flood-guard-action",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bundled GitHub Action entry point for PRFloodGuard",
+  "main": "dist/index.js"
+}

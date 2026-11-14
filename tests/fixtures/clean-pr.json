@@ -1,0 +1,6 @@
+{
+  "title": "Add pagination to search results",
+  "body": "Explains what changed and how it was tested.",
+  "branchName": "feature/search-pagination",
+  "files": ["src/search.ts", "src/search.test.ts", "docs/search.md"]
+}

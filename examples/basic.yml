@@ -1,0 +1,21 @@
+version: 1
+
+thresholds:
+  critical: 25
+  high: 40
+  medium: 65
+
+actions:
+  critical: "label+comment"
+  high: "label+comment"
+  medium: "label"
+  low: "none"
+
+comment:
+  enabled: true
+  style: professional
+
+whitelist:
+  users:
+    - trusted-maintainer
+  teams: []
