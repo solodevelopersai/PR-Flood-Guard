@@ -5,6 +5,25 @@ thresholds:
   high: 40
   medium: 65
 
+weights:
+  genericTitle: 20
+  shortTitle: 8
+  weakDescription: 12
+  shortDescription: 6
+  noLinkedIssue: 4
+  weakCommit: 12
+  suspiciousDiff: 12
+  manyFiles: 8
+  noTests: 8
+  newAccount: 10
+  lowReputation: 8
+  aiPattern: 8
+  genericBranch: 6
+  missingDocs: 5
+
+scoring:
+  titleCommitPenaltyCap: 25
+
 actions:
   critical: "label+comment"
   high: "label+comment"

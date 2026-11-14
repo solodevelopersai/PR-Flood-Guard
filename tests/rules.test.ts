@@ -16,6 +16,8 @@ describe("configuration", () => {
   it("applies defaults to a minimal valid config", () => {
     const config = parseConfig("version: 1");
     expect(config.thresholds).toEqual(defaultConfig.thresholds);
+    expect(config.weights).toEqual(defaultConfig.weights);
+    expect(config.scoring).toEqual(defaultConfig.scoring);
     expect(config.actions).toEqual(defaultConfig.actions);
     expect(config.comment.enabled).toBe(true);
   });
