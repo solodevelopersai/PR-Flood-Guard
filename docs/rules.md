@@ -20,3 +20,6 @@ The detector starts at 100 and subtracts each triggered rule's impact, clamping 
 | No docs changed        |      5 | Recognized code changed without a documentation file; many code changes do not need docs.                    |
 
 Unavailable optional author or issue data is logged and skipped where possible. API failures for required PR metadata, checks, labels, or comments fail the Action. You can tune risk thresholds and actions; rule weights are intentionally stable in the initial release.
+
+## Note
+Scores are heuristic signals for maintainers, not proof of AI authorship.
