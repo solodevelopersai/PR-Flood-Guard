@@ -61,18 +61,24 @@ actions:
 
 The Action creates a GitHub Check for every analyzed PR. Risk actions are configured separately: `none`, `label`, `comment`, `label+comment`, or `quarantine`. Quarantine adds the critical label/comment and converts the PR to draft; it does not close or merge it. Draft conversion requires the `pull-requests: write` permission and is off unless configured.
 
+## Test your setup
+
+Open a test PR titled `Update` with an empty description. Expect a `prflood:` risk label and a comment explaining the score. Close the test PR afterwards without merging.
+
 ## Example result
 
-<!-- Screenshot placeholder: add a screenshot of a PRFloodGuard check and comment here. -->
-
 ```text
-PRFloodGuard: High risk · Score 34/100
+PRFloodGuard: High risk · Score 40/100
 
 Signals:
-- Generic title: "Update files" (-20)
-- No test files changed (-10)
-- Branch name is generic (-6)
+- generic-title (-20)
+- weak-description (-12)
+- no-linked-issue (-4)
+- weak-commit-messages (-12)
+- suspicious-diff-size (-12)
 ```
+
+Scores are heuristic signals, and no PR is closed automatically.
 
 ## Configuration
 
@@ -85,10 +91,14 @@ See [Configuration](docs/configuration.md) for all settings, defaults, threshold
 | `labels`          | Label names per risk. Labels are created if missing; stale PRFloodGuard risk labels are removed.  |
 | `comment`         | Enable a transparent comment and choose `professional`, `friendly`, or `minimal` style.           |
 | `whitelist.users` | GitHub login names that bypass scoring actions (a neutral check is still recorded).               |
-| `whitelist.teams` | `org/team-slug` entries; requires the token to have organization read access.                     |
+| `whitelist.teams` | Experimental: `org/team-slug` entries; may require extra token permissions.                       |
 | `features`        | Reserved opt-in flags for future Pro features; no paid or LLM feature is enabled by this release. |
 
-If labels, comments, or draft conversion are enabled, grant the corresponding permissions in the workflow. Team membership checks require `read:org`; if the token cannot check a configured team, the Action logs a warning and continues with analysis.
+## If a PR is labeled wrongly
+
+Add trusted contributors to `whitelist.users` or adjust the risk thresholds in your configuration. Scores are signals only; review the rule explanations before deciding.
+
+If labels, comments, or draft conversion are enabled, grant the corresponding permissions in the workflow. Experimental team membership checks may require `read:org`; if the token cannot check a configured team, the Action logs a warning and continues with analysis.
 
 ## Scoring and safety
 
@@ -121,3 +131,4 @@ Bug reports and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.m
 ## License
 
 MIT. See [LICENSE](LICENSE).
+Fixed a typo.
