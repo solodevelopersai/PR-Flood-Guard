@@ -2,7 +2,7 @@
   "name": "pr-flood-guard",
   "version": "0.1.0",
   "description": "Transparent, configurable pull request quality heuristics for GitHub",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/solodevelopersai/pr-flood-guard.git"
