@@ -27,3 +27,7 @@ npm run build:action
 ## Reporting issues
 
 Include a minimal reproduction, expected behavior, actual behavior, and relevant logs with secrets removed. Please do not include private contributor data.
+
+## License of contributions
+
+By submitting a pull request, you agree that your contribution is licensed under the PolyForm Shield License 1.0.0, and that the maintainer may also use it in other versions of the project.
