@@ -3,10 +3,10 @@
 **Guard your repository from the PR flood.**
 
 [![CI](https://github.com/solodevelopersai/pr-flood-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/solodevelopersai/pr-flood-guard/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: PolyForm Shield](https://img.shields.io/badge/License-PolyForm%20Shield-blue.svg)](LICENSE)
 [![Node.js 20+](https://img.shields.io/badge/node-20%2B-339933.svg)](https://nodejs.org/)
 
-PRFloodGuard is an open-source GitHub Action that transparently scores pull requests using fast, configurable heuristics. It can add a risk label, leave a constructive explanation, create a GitHub Check, and—only when you opt in—convert a high-risk PR to a draft. It never closes PRs.
+PRFloodGuard is a source-available GitHub Action that transparently scores pull requests using fast, configurable heuristics. It can add a risk label, leave a constructive explanation, create a GitHub Check, and—only when you opt in—convert a high-risk PR to a draft. It never closes PRs.
 
 > **Important:** Scores are signals for maintainers, not proof of AI authorship or contributor intent. Review the reasons and make the final decision.
 
@@ -122,7 +122,7 @@ The Action uses the committed, bundled `action/dist/index.js`, so users do not n
 
 ## Roadmap
 
-The core in this repository is MIT-licensed and free. LLM analysis, richer contributor reputation, hosted analytics, organization policies, and notifications are possible future integrations; they are not required or silently enabled by the MVP.
+The core in this repository is source-available and free to use. LLM analysis, richer contributor reputation, hosted analytics, organization policies, and notifications are possible future integrations; they are not required or silently enabled by the MVP.
 
 ## Contributing
 
@@ -130,5 +130,4 @@ Bug reports and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.m
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
-Fixed a typo.
+Licensed under the PolyForm Shield License 1.0.0. See [LICENSE](LICENSE). You may use PRFloodGuard freely in your own repositories, but you may not use it to provide a competing product or service.
